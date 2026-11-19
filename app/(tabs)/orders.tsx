@@ -1,52 +1,210 @@
-import { useState } from 'react';
-import { View, ScrollView, Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
+
+import { useCallback, useState } from 'react';
+import { View, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { T, Chip, Badge, Card } from '../../components/ui';
-import { orders, getConcert, Order } from '../../data';
-import { colors, statusConfig } from '../../constants/theme';
+import { colors } from '../../constants/theme';
 import { formatDate, formatRupiah } from '../../lib/format';
+import { orderApi } from '../../services/orderApi';
 
-const TABS: { label: string; key: Order['status'] | 'all' }[] = [
-  { label: 'Semua', key: 'all' }, { label: 'Menunggu', key: 'pending' },
-  { label: 'Berhasil', key: 'paid' }, { label: 'Kedaluwarsa', key: 'expired' },
-];
+type OrderStatus = 'pending' | 'paid' | 'expired' | 'cancelled' | 'failed';
+
+type Order = {
+  id: number;
+  status: OrderStatus;
+  total_price: number | string;
+  created_at?: string;
+  expires_at?: string;
+  seconds_left?: number;
+  concert?: {
+    id: number;
+    title: string;
+    date: string;
+    venue: string;
+    location?: string;
+  };
+  details?: {
+    id: number;
+    quantity: number;
+    unit_price: number | string;
+    subtotal: number | string;
+    tier?: {
+      id: number;
+      name: string;
+    };
+  }[];
+};
+
+const TABS = [
+  { label: 'Semua', key: 'all' },
+  { label: 'Menunggu', key: 'pending' },
+  { label: 'Berhasil', key: 'paid' },
+  { label: 'Kedaluwarsa', key: 'expired' },
+  { label: 'Dibatalkan', key: 'cancelled' },
+] as const;
+
+const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string }> = {
+  pending: { label: 'Menunggu Pembayaran', color: colors.warning },
+  paid: { label: 'Berhasil', color: colors.success },
+  expired: { label: 'Kedaluwarsa', color: colors.muted },
+  cancelled: { label: 'Dibatalkan', color: colors.danger },
+  failed: { label: 'Gagal', color: colors.danger },
+};
+
+const toNum = (value: number | string | undefined) => Number(value) || 0;
+
+const getOrderList = (result: any): Order[] => {
+  if (Array.isArray(result)) return result;
+  if (Array.isArray(result?.rows)) return result.rows;
+  if (Array.isArray(result?.items)) return result.items;
+  if (Array.isArray(result?.data)) return result.data;
+  return [];
+};
 
 export default function Orders() {
   const r = useRouter();
+
   const [tab, setTab] = useState<(typeof TABS)[number]['key']>('all');
-  const list = orders.filter((o) => tab === 'all' || o.status === tab);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const loadOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const result = await orderApi.getMyOrders();
+      setOrders(getOrderList(result));
+    } catch (e: any) {
+      setError(e?.message ?? 'Gagal mengambil daftar pesanan');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadOrders();
+    }, [loadOrders])
+  );
+
+  const list = orders.filter(
+    order => tab === 'all' || order.status === tab
+  );
+
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.bg }}>
-      <T w="bold" style={{ fontSize: 22, padding: 16, paddingBottom: 8 }}>Pesanan Saya</T>
-      <View style={{ height: 52 }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
-          {TABS.map((t) => <Chip key={t.key} label={t.label} active={tab === t.key} onPress={() => setTab(t.key)} />)}
+      <View style={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 14 }}>
+        <T w="bold" style={{ fontSize: 24, marginBottom: 14 }}>
+          Pesanan Saya
+        </T>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 10, paddingRight: 16 }}
+        >
+          {TABS.map(t => (
+            <Chip
+              key={t.key}
+              label={t.label}
+              active={tab === t.key}
+              onPress={() => setTab(t.key)}
+            />
+          ))}
         </ScrollView>
       </View>
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
-        {list.length === 0 && <T style={{ color: colors.muted, textAlign: 'center', marginTop: 40 }}>Belum ada pesanan</T>}
-        {list.map((o) => {
-          const c = getConcert(o.concertId); const st = statusConfig[o.status];
-          return (
-            <Pressable key={o.id} onPress={() => r.push({ pathname: '/order/[id]', params: { id: o.id } })} style={{ marginBottom: 12 }}>
-              <Card>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <T style={{ color: colors.muted, fontSize: 11 }}>{o.id}</T>
-                  <Badge label={st.label} color={st.color} />
-                </View>
-                <T w="semibold">{c.title}</T>
-                <T style={{ color: colors.muted, fontSize: 12 }}>{formatDate(c.date)} • {c.venue}</T>
-                <View style={{ borderTopWidth: 1, borderStyle: 'dashed', borderColor: colors.border, marginVertical: 10 }} />
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <T style={{ color: colors.muted }}>{o.tier} × {o.qty}</T>
-                  <T w="bold" style={{ color: colors.primary }}>{formatRupiah(o.unitPrice * o.qty)}</T>
-                </View>
-              </Card>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+
+      {loading ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator color={colors.primary} />
+          <T style={{ color: colors.muted, marginTop: 10 }}>
+            Memuat pesanan...
+          </T>
+        </View>
+      ) : error ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <T style={{ color: colors.danger, textAlign: 'center', marginBottom: 12 }}>
+            {error}
+          </T>
+          <Pressable onPress={loadOrders}>
+            <T w="semibold" style={{ color: colors.primary }}>
+              Coba Lagi
+            </T>
+          </Pressable>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={{ padding: 16 }}>
+          {list.length === 0 && (
+            <T style={{ color: colors.muted, textAlign: 'center', marginTop: 40 }}>
+              Belum ada pesanan
+            </T>
+          )}
+
+          {list.map(order => {
+            const status = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending;
+            const concert = order.concert;
+            const details = order.details ?? [];
+
+            return (
+              <Pressable
+                key={order.id}
+                onPress={() =>
+                  r.push({
+                    pathname: '/order/[id]',
+                    params: { id: String(order.id) },
+                  })
+                }
+                style={{ marginBottom: 12 }}
+              >
+                <Card>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <T style={{ color: colors.muted, fontSize: 11 }}>
+                      Order #{order.id}
+                    </T>
+                    <Badge label={status.label} color={status.color} />
+                  </View>
+
+                  <T w="semibold">
+                    {concert?.title ?? 'Konser tidak ditemukan'}
+                  </T>
+
+                  {concert && (
+                    <T style={{ color: colors.muted, fontSize: 12 }}>
+                      {formatDate(concert.date)} • {concert.venue}
+                    </T>
+                  )}
+
+                  <View style={{ borderTopWidth: 1, borderStyle: 'dashed', borderColor: colors.border, marginVertical: 10 }} />
+
+                  {details.map((detail, index) => (
+                    <View
+                      key={detail.id ?? index}
+                      style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}
+                    >
+                      <T style={{ color: colors.muted, fontSize: 12 }}>
+                        {detail.tier?.name ?? 'Tiket'} × {detail.quantity}
+                      </T>
+                      <T style={{ fontSize: 12 }}>
+                        {formatRupiah(toNum(detail.subtotal))}
+                      </T>
+                    </View>
+                  ))}
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
+                    <T style={{ color: colors.muted }}>Total Pembayaran</T>
+                    <T w="bold" style={{ color: colors.primary }}>
+                      {formatRupiah(toNum(order.total_price))}
+                    </T>
+                  </View>
+                </Card>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }

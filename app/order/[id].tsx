@@ -1,45 +1,195 @@
-import { View, ScrollView, Pressable } from 'react-native';
+
+import { useEffect, useState } from 'react';
+import { View, ScrollView, Pressable, ActivityIndicator, Alert, Linking } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { T, Badge, Card, Row, Button } from '../../components/ui';
-import QrTicket from '../../components/QrTicket';
-import { orders, getConcert, ADMIN_FEE, TAX_RATE } from '../../data';
 import { colors, statusConfig } from '../../constants/theme';
 import { formatDate, formatTime, formatRupiah } from '../../lib/format';
+import { orderApi } from '../../services/orderApi';
+
+type Order = {
+    id: number;
+    status: 'pending' | 'paid' | 'cancelled' | 'expired';
+    total_price: number | string;
+    expires_at: string;
+    seconds_left: number;
+    concert: {
+        id: number;
+        title: string;
+        date: string;
+        venue: string;
+        location: string;
+    };
+    details: {
+        id: number;
+        quantity: number;
+        unit_price: number | string;
+        subtotal: number | string;
+        tier: {
+            id: number;
+            name: string;
+        };
+    }[];
+};
 
 export default function OrderDetail() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const r = useRouter();
-  const o = orders.find((x) => x.id === id)!;
-  const c = getConcert(o.concertId); const st = statusConfig[o.status];
-  const sub = o.unitPrice * o.qty; const tax = Math.round(sub * TAX_RATE);
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 }}>
-        <Pressable onPress={() => r.back()}><Ionicons name="arrow-back" size={24} color="#fff" /></Pressable>
-        <T w="semibold" style={{ fontSize: 17 }}>Detail Pesanan</T>
-      </View>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 0 }}>
-        <Card style={{ marginBottom: 14 }}>
-          <Badge label={st.label} color={st.color} />
-          <T w="semibold" style={{ fontSize: 17, marginTop: 8 }}>{c.title}</T>
-          <T style={{ color: colors.muted, fontSize: 12 }}>{o.id}</T>
-          <T style={{ color: colors.muted, marginTop: 6 }}>{formatDate(c.date)} • {formatTime(c.date)}</T>
-          <T style={{ color: colors.muted }}>{c.venue}, {c.city}</T>
-        </Card>
-        <Card style={{ marginBottom: 14 }}>
-          <T w="semibold" style={{ marginBottom: 6 }}>Ringkasan Pembayaran</T>
-          <Row l={`${o.tier} × ${o.qty}`} r={formatRupiah(sub)} />
-          <Row l="Biaya admin" r={formatRupiah(ADMIN_FEE)} />
-          <Row l="Pajak (11%)" r={formatRupiah(tax)} />
-          <Row l="Total" r={formatRupiah(sub + ADMIN_FEE + tax)} bold />
-        </Card>
-        {o.status === 'pending' && <Button title="Bayar Sekarang" onPress={() => r.push({ pathname: '/checkout/[id]', params: { id: String(c.id), tierId: String(c.tiers.find((t) => t.name === o.tier)!.id), qty: String(o.qty) } })} />}
-        {o.status === 'paid' && Array.from({ length: o.qty }, (_, i) => (
-          <QrTicket key={i} code={`${o.id}-${i + 1}`} tier={o.tier} concert={c.title} index={i + 1} />
-        ))}
-      </ScrollView>
-    </SafeAreaView>
-  );
+    const { id } = useLocalSearchParams<{ id: string }>();
+    const r = useRouter();
+
+    const [order, setOrder] = useState<Order | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [paying, setPaying] = useState(false);
+
+    const fetchOrder = async () => {
+        try {
+            setLoading(true);
+            const result = await orderApi.getById(Number(id));
+            setOrder(result);
+        } catch (error: any) {
+            Alert.alert('Gagal', error.message || 'Gagal mengambil detail pesanan');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchOrder();
+    }, [id]);
+
+    const handlePay = async () => {
+        if (!order) return;
+
+        try {
+            setPaying(true);
+
+            const result = await orderApi.pay(order.id);
+            const redirectUrl = result?.redirect_url;
+
+            if (!redirectUrl) {
+                throw new Error('Link pembayaran tidak ditemukan');
+            }
+
+            await Linking.openURL(redirectUrl);
+        } catch (error: any) {
+            Alert.alert('Pembayaran gagal', error.message || 'Tidak dapat membuka pembayaran');
+        } finally {
+            setPaying(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <T style={{ color: colors.muted, marginTop: 12 }}>Memuat pesanan...</T>
+            </SafeAreaView>
+        );
+    }
+
+    if (!order) {
+        return (
+            <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, padding: 20 }}>
+                <T w="semibold" style={{ fontSize: 18 }}>Pesanan tidak ditemukan</T>
+                <Button title="Coba Lagi" onPress={fetchOrder} />
+            </SafeAreaView>
+        );
+    }
+
+    const concert = order.concert;
+    const status = statusConfig[order.status];
+
+    return (
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 }}>
+                <Pressable onPress={() => r.back()}>
+                    <Ionicons name="arrow-back" size={24} color="#fff" />
+                </Pressable>
+                <T w="semibold" style={{ fontSize: 17 }}>Detail Pesanan</T>
+            </View>
+
+            <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 0, paddingBottom: 30 }}>
+                <Card style={{ marginBottom: 14 }}>
+                    <Badge
+                        label={status?.label || order.status}
+                        color={status?.color || colors.muted}
+                    />
+
+                    <T w="bold" style={{ fontSize: 19, marginTop: 12 }}>
+                        {concert?.title}
+                    </T>
+
+                    <T style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>
+                        Order #{order.id}
+                    </T>
+
+                    <View style={{ marginTop: 16, gap: 12 }}>
+                        <Row
+                            l="Tanggal"
+                            r={`${formatDate(concert.date)} • ${formatTime(concert.date)}`}
+                        />
+                        <Row l="Tempat" r={concert.venue} />
+                        <Row l="Lokasi" r={concert.location} />
+                    </View>
+                </Card>
+
+                <Card style={{ marginBottom: 14 }}>
+                    <T w="semibold" style={{ fontSize: 16, marginBottom: 14 }}>
+                        Detail Tiket
+                    </T>
+
+                    {order.details?.map((item) => (
+                        <View key={item.id} style={{ marginBottom: 14 }}>
+                            <T w="semibold">{item.tier?.name || 'Tiket'}</T>
+                            <Row
+                                l={`${item.quantity} tiket × ${formatRupiah(Number(item.unit_price))}`}
+                                r={formatRupiah(Number(item.subtotal))}
+                            />
+                        </View>
+                    ))}
+
+                    <View style={{ borderTopWidth: 1, borderColor: '#333', paddingTop: 12 }}>
+                        <Row
+                            l="Total Pembayaran"
+                            r={formatRupiah(Number(order.total_price))}
+                            bold
+                        />
+                    </View>
+                </Card>
+
+                {order.status === 'pending' && (
+                    <Card style={{ marginBottom: 14 }}>
+                        <T w="semibold" style={{ marginBottom: 6 }}>
+                            Batas Pembayaran
+                        </T>
+                        <T style={{ color: colors.muted, fontSize: 13 }}>
+                            {order.seconds_left > 0
+                                ? `Sisa waktu ${Math.floor(order.seconds_left / 60)} menit ${order.seconds_left % 60} detik`
+                                : 'Waktu pembayaran telah habis'}
+                        </T>
+                    </Card>
+                )}
+
+                {order.status === 'pending' && (
+                    <Button
+                        title={paying ? 'Memproses...' : `Bayar ${formatRupiah(Number(order.total_price))}`}
+                        onPress={handlePay}
+                        disabled={paying || order.seconds_left <= 0}
+                    />
+                )}
+
+                {order.status === 'paid' && (
+                    <Card>
+                        <T w="semibold" style={{ marginBottom: 6 }}>
+                            Pembayaran Berhasil
+                        </T>
+                        <T style={{ color: colors.muted, fontSize: 13 }}>
+                            Pesanan kamu sudah dibayar. Tiket digital dapat dilihat melalui halaman tiket.
+                        </T>
+                    </Card>
+                )}
+            </ScrollView>
+        </SafeAreaView>
+    );
 }
