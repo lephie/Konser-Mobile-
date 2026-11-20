@@ -2,7 +2,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { useState } from 'react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://192.168.1.13:5000/api';
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.1.13:5000/api';
 
 
 
@@ -58,5 +58,12 @@ export const orderApi = {
         request(`/orders/${id}/pay`, { method: 'POST' }),
 
     checkStatus: (id: number) =>
-        request(`/payment/${id}/status`),
+        request(`/orders/${id}/status`),
+    
+    getMyTickets: () =>
+        request('/tickets'),
+
+    getMyTicketsStatus: (status = 'unused') =>
+        request(`/tickets?status=${status}`)
+
 };

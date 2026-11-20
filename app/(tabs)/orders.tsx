@@ -7,6 +7,7 @@ import { T, Chip, Badge, Card } from '../../components/ui';
 import { colors } from '../../constants/theme';
 import { formatDate, formatRupiah } from '../../lib/format';
 import { orderApi } from '../../services/orderApi';
+import QrTicket from '../../components/QrTicket';
 
 type OrderStatus = 'pending' | 'paid' | 'expired' | 'cancelled' | 'failed';
 
@@ -69,8 +70,14 @@ export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
+  const [ticket, setTickets] = useState<any[]>([])
   const loadOrders = useCallback(async () => {
+    const [result, ticketResult] = await Promise.all([
+      orderApi.getMyOrders(),
+      orderApi.getMyTickets().catch(() => [])
+    ]);
+    setOrders(getOrderList(result))
+    setTickets(getOrderList(ticketResult))
     try {
       setLoading(true);
       setError('');
@@ -199,6 +206,18 @@ export default function Orders() {
                       {formatRupiah(toNum(order.total_price))}
                     </T>
                   </View>
+                  {order.status === 'paid' &&
+                  ticket.filter(t => t.order_id === order.id).map((t, i) => (
+                    <View key={t.id} style={{marginTop: 12}}>
+                      <QrTicket 
+                      code={String(t.qr_code ?? t.code ?? t.id)}
+                      tier={t.tier?.name ?? details[0]?.tier?.name ?? 'Tiket'}
+                      concert={concert?.title ?? ''}
+                      index={i + 1}
+                      />
+                    </View>
+                  ))
+                  }
                 </Card>
               </Pressable>
             );

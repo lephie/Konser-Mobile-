@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.1.13:5000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.1.16:5000/api';
 
 export const authApi = {
 
@@ -37,8 +37,8 @@ export const authApi = {
 
             return { ok: true, user: userObject };
 
-        } catch (error) {
-            console.error('Login error:', error);
+        } catch (err) {
+            console.error('Login error:', err);
             return {
                 ok: false,
                 message: 'Terjadi kesalahan saat login'

@@ -9,6 +9,7 @@ import { useAuth } from '../../lib/auth';
 import { colors } from '../../constants/theme';
 import { formatRupiah } from '../../lib/format';
 import { orderApi } from '../../services/orderApi';
+import { payOrder } from '../../services/payment';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.1.13:5000/api';
 
@@ -58,6 +59,7 @@ export default function Checkout() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [paying, setPaying] = useState(false);
   const [method, setMethod] = useState<string>('QRIS');
   const [name, setName] = useState(user?.name ?? '');
   const [phone, setPhone] = useState(user?.phone ?? '');
@@ -125,6 +127,19 @@ export default function Checkout() {
     loadCheckout();
     return () => ctrl.abort();
   }, [id, tierId]);
+
+  const handlePay = async () => {
+    if(!order || paying ) return;
+    try {
+      setPaying(true);
+      const outCome = await payOrder(order.id);
+      if(outCome === 'paid'){
+        r.replace({pathname: '/checkout/success', params: {orderId: String(order.id)}})
+      }
+    } catch (err) {
+      
+    }
+  }
 
   if (loading) {
     return (
@@ -225,10 +240,9 @@ export default function Checkout() {
         }}
       >
         <Button
-          title={`Bayar ${formatRupiah(total)}`}
-          onPress={() =>
-            Alert.alert('Belum tersedia', 'Fitur pembayaran belum diaktifkan.')
-          }
+          title={paying ? 'Memproses..' :  `Bayar  ${formatRupiah(total)}`}
+          onPress={handlePay}
+          disabled={paying}
         />
       </SafeAreaView>
     </View>

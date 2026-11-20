@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { View, ScrollView, Pressable, ActivityIndicator, Alert, Linking } from 'react-native';
+import { View, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { T, Badge, Card, Row, Button } from '../../components/ui';
 import { colors, statusConfig } from '../../constants/theme';
 import { formatDate, formatTime, formatRupiah } from '../../lib/format';
 import { orderApi } from '../../services/orderApi';
+import { payOrder } from '../../services/payment';
 
 type Order = {
     id: number;
@@ -64,14 +65,16 @@ export default function OrderDetail() {
         try {
             setPaying(true);
 
-            const result = await orderApi.pay(order.id);
-            const redirectUrl = result?.redirect_url;
-
-            if (!redirectUrl) {
-                throw new Error('Link pembayaran tidak ditemukan');
+            const outcome = await payOrder(order.id);
+            if (outcome === 'paid') {
+               r.replace({pathname: 'checkout/success', params: {orderId: String(order.id)}})
+            }
+            if(outcome === 'failed'){
+                Alert.alert('Pembayaran gagal', 'Pesanan dibatalkan atau expired')
             }
 
-            await Linking.openURL(redirectUrl);
+            await fetchOrder()
+
         } catch (error: any) {
             Alert.alert('Pembayaran gagal', error.message || 'Tidak dapat membuka pembayaran');
         } finally {

@@ -7,7 +7,7 @@ import { T, Button, Badge } from '../../components/ui';
 import { colors, tierColors } from '../../constants/theme';
 import { formatDate, formatTime, formatRupiah } from '../../lib/format';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.1.13:5000/api';
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.100.130:5000/api';
 
 type Tier = {
   id: string | number;

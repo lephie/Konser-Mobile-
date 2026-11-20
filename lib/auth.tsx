@@ -22,7 +22,7 @@ type Ctx = {
   logout: () => void;
 };
 
-const AuthCtx = createContext<Ctx>(null as any);
+const   AuthCtx = createContext<Ctx>(null as any);
 export const useAuth = () => useContext(AuthCtx);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
