@@ -5,7 +5,7 @@ import { ScrollView, View, ActivityIndicator, Pressable } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { T } from '../../components/ui';
-import { colors } from '../../constants/theme';
+import { colors, getTierColor } from '../../constants/theme';
 import QrTicket from '../../components/QrTicket';
 
 
@@ -15,6 +15,7 @@ type Ticket = {
     status: 'unused' | 'used' | 'cancelled';
     concert?: {id: number, title: string};
     tier?: {id: number, name: string};
+    tierId: {};
   };
 
   const getList = (result: any): Ticket[] => {
@@ -79,6 +80,7 @@ export default function Tickets() {
               tier={t.tier?.name ?? 'Tiket'}
               concert={t.concert?.title ?? '-'}
               index={i + 1}
+              tierId={getTierColor(t.tier?.name, t.tier?.id)}
             />
           ))}
         </ScrollView>

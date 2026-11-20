@@ -1,6 +1,20 @@
 import * as SecureStore from 'expo-secure-store';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.1.16:5000/api';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.16:5000/api';
+
+const authed = async (path: string, body: object) => {
+    const token = await SecureStore.getItemAsync('user_token');
+    if (!token) throw new Error('Silakan login kembali');
+
+    const res = await fetch(`${API_URL}${path}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Terjadi kesalahan pada server');
+    return json.data ?? json;
+};
 
 export const authApi = {
 
@@ -108,4 +122,10 @@ export const authApi = {
             return null;
         }
     },
+    updateProfile: (name: string, phone: string) => 
+        authed('/auth/profile', { name, phone }),
+
+    changePassword: (old_password: string, new_password: string) =>
+
+        authed('/auth/password', { old_password, new_password }),
 }
