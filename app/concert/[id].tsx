@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { T, Button, Badge } from '../../components/ui';
 import { colors, tierColors } from '../../constants/theme';
 import { formatDate, formatTime, formatRupiah } from '../../lib/format';
+import VenueInfo from '../../components/VenueInfo';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.100.130:5000/api';
 
@@ -28,6 +29,8 @@ type Concert = {
   location?: string;
   date: string;
   banner_url?: string;
+  layout_url?: string | null;
+  map_url?: string | null;
   genre?: string;
   genres?: string[];
   tiers?: Tier[];
@@ -122,6 +125,9 @@ export default function ConcertDetail() {
             <Info icon="calendar-outline" text={`${formatDate(c.date)} • ${formatTime(c.date)}`} />
             <Info icon="location-outline" text={locationText || '-'} />
           </View>
+
+          {/* disini lah letak perubhaanya */}
+          <VenueInfo layoutUrl={c.layout_url} mapUrl={c.map_url} /> 
 
           <T w="semibold" style={{ fontSize: 16, marginTop: 18, marginBottom: 8 }}>Kategori Tiket</T>
 

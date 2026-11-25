@@ -15,9 +15,14 @@ type Concert = {
   location?: string;
   banner_url?: string;
   description?: string;
-  artist?: string;
-  genres?: string[];
-  genre?: string;
+  tiers?: {
+    id: number;
+    name: string;
+    price: number;
+    quota: number;
+    sold: number;
+  }[];
+  starting_price?: number | null;
 };
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.1.16:5000/api';

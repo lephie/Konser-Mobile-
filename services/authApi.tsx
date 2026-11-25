@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.16:5000/api';
+const API_URL = process.env.EXPO_PUBLIC_API_URL ;
 
 const authed = async (path: string, body: object) => {
     const token = await SecureStore.getItemAsync('user_token');

@@ -4,12 +4,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { T, Button, Card, Input, Row } from '../../components/ui';
-import { TAX_RATE } from '../../data';
 import { useAuth } from '../../lib/auth';
 import { colors } from '../../constants/theme';
 import { formatRupiah } from '../../lib/format';
 import { orderApi } from '../../services/orderApi';
 import { payOrder } from '../../services/payment';
+import { TAX_RATE } from '../../data';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.1.13:5000/api';
 
