@@ -2,7 +2,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { useState } from 'react';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.1.13:5000/api';
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.1.46:5000/api';
 
 
 

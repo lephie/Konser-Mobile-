@@ -8,7 +8,7 @@ export const T = ({ w = 'regular', style, ...p }: TextProps & { w?: keyof typeof
 
 export const Logo = ({ size = 24 }: { size?: number }) => (
   <Text style={{ fontFamily: fonts.bold, fontSize: size, color: colors.text }}>
-    Ticket<Text style={{ color: colors.primary }}>.COM</Text>
+    The <Text style={{ color: colors.primary }}>Concert's</Text>
   </Text>
 );
 
@@ -16,10 +16,10 @@ export const Button = ({ title, onPress, variant = 'primary', disabled, style }:
   { title: string; onPress?: () => void; variant?: 'primary' | 'outline' | 'danger'; disabled?: boolean; style?: ViewStyle }) => (
   <Pressable onPress={onPress} disabled={disabled}
     style={({ pressed }) => [s.btn,
-      variant === 'primary' && { backgroundColor: pressed ? colors.primaryPressed : colors.primary },
-      variant === 'outline' && { borderWidth: 1, borderColor: colors.border, backgroundColor: pressed ? colors.card2 : 'transparent' },
-      variant === 'danger' && { borderWidth: 1, borderColor: colors.danger, backgroundColor: 'transparent' },
-      disabled && { opacity: 0.4 }, style]}>
+    variant === 'primary' && { backgroundColor: pressed ? colors.primaryPressed : colors.primary },
+    variant === 'outline' && { borderWidth: 1, borderColor: colors.border, backgroundColor: pressed ? colors.card2 : 'transparent' },
+    variant === 'danger' && { borderWidth: 1, borderColor: colors.danger, backgroundColor: 'transparent' },
+    disabled && { opacity: 0.4 }, style]}>
     <T w="semibold" style={{ color: variant === 'primary' ? '#131313' : variant === 'danger' ? colors.danger : colors.text }}>{title}</T>
   </Pressable>
 );
@@ -58,7 +58,9 @@ export const Row = ({ l, r, bold }: { l: string; r: string; bold?: boolean }) =>
 
 const s = StyleSheet.create({
   btn: { height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
-  input: { height: 50, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card2,
-    color: colors.text, paddingHorizontal: 14, fontFamily: fonts.regular, fontSize: 14 },
+  input: {
+    height: 50, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card2,
+    color: colors.text, paddingHorizontal: 14, fontFamily: fonts.regular, fontSize: 14
+  },
   chip: { borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 8, marginRight: 8 },
 });

@@ -17,7 +17,7 @@ type Notification = {
   created_at: string;
 };
 
-const CATS = ['Semua', 'Pesanan', 'Pengingat', 'Promo'] as const;
+const CATS = ['Semua'] as const;
 
 const getCategory = (n: Notification) => {
   const value = String(n.category || n.type || '').toLowerCase();
@@ -104,10 +104,7 @@ export default function Notif() {
     }
   };
 
-  const list = notifications.filter(n => {
-    return cat === 'Semua' || getCategory(n) === cat;
-  });
-
+  const list = notifications;
   const groups = ['Hari ini', 'Kemarin', 'Sebelumnya'] as const;
 
   return (
@@ -128,20 +125,6 @@ export default function Notif() {
           )}
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 10, paddingRight: 16 }}
-        >
-          {CATS.map(c => (
-            <Chip
-              key={c}
-              label={c}
-              active={cat === c}
-              onPress={() => setCat(c)}
-            />
-          ))}
-        </ScrollView>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 4 }}>

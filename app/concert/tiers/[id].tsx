@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { View, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -8,7 +9,6 @@ import { colors, tierColors } from '../../../constants/theme';
 import { formatRupiah } from '../../../lib/format';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.1.13:5000/api';
-
 const MAX = 4;
 
 type Tier = {
@@ -35,31 +35,65 @@ export default function TierSelection() {
   const [c, setC] = useState<Concert | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const [tier, setTier] = useState<Tier | null>(null);
-  const [qty, setQty] = useState(1);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!id) return;
+
     const ctrl = new AbortController();
 
     (async () => {
       try {
         setLoading(true);
         setError(null);
-        const res = await fetch(`${API_URL}/concerts/${id}`, { signal: ctrl.signal });
+
+        const res = await fetch(`${API_URL}/concerts/${id}`, {
+          signal: ctrl.signal
+        });
+
         if (!res.ok) throw new Error(`Gagal ambil data (${res.status})`);
+
         const json = await res.json();
         setC(json?.data ?? json);
       } catch (e: any) {
-        if (e?.name !== 'AbortError') setError(e?.message ?? 'Terjadi kesalahan');
+        if (e?.name !== 'AbortError') {
+          setError(e?.message ?? 'Terjadi kesalahan');
+        }
       } finally {
-        setLoading(false);
+        if (!ctrl.signal.aborted) setLoading(false);
       }
     })();
 
     return () => ctrl.abort();
   }, [id]);
+
+  const totalQty = Object.values(quantities).reduce((a, b) => a + b, 0);
+
+  const selectedItems = Object.entries(quantities)
+    .filter(([_, qty]) => qty > 0)
+    .map(([id, quantity]) => ({
+      ticket_tier_id: Number(id),
+      quantity
+    }));
+
+  const total = c?.tiers?.reduce((sum, t) => {
+    return sum + t.price * (quantities[String(t.id)] || 0);
+  }, 0) || 0;
+
+  const changeQty = (tier: Tier, amount: number) => {
+    const key = String(tier.id);
+    const current = quantities[key] || 0;
+    const remaining = Math.max(0, tier.quota - tier.sold);
+    const next = current + amount;
+
+    if (next < 0 || next > remaining) return;
+    if (totalQty + amount > MAX) return;
+
+    setQuantities(prev => ({
+      ...prev,
+      [key]: next
+    }));
+  };
 
   if (loading) {
     return (
@@ -72,15 +106,13 @@ export default function TierSelection() {
   if (error || !c) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <T style={{ color: 'red', textAlign: 'center', marginBottom: 12 }}>{error ?? 'Konser tidak ditemukan'}</T>
+        <T style={{ color: 'red', textAlign: 'center', marginBottom: 12 }}>
+          {error ?? 'Konser tidak ditemukan'}
+        </T>
         <Button title="Kembali" onPress={() => r.back()} />
       </View>
     );
   }
-
-  const total = tier ? tier.price * qty : 0;
-  const left = tier ? tier.quota - tier.sold : 0;
-  const max = Math.min(MAX, left);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -91,54 +123,113 @@ export default function TierSelection() {
           </Pressable>
           <View style={{ flex: 1 }}>
             <T w="semibold" style={{ fontSize: 17 }}>Pilih Tiket</T>
-            <T style={{ color: colors.muted, fontSize: 12 }} numberOfLines={1}>{c.title}</T>
+            <T style={{ color: colors.muted, fontSize: 12 }} numberOfLines={1}>
+              {c.title}
+            </T>
           </View>
         </View>
 
         <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 0 }}>
+          <View style={{ marginBottom: 14 }}>
+            <T w="semibold">Pilih Kategori Tiket</T>
+            <T style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>
+              Pilih beberapa kategori sekaligus. Maksimal {MAX} tiket per transaksi.
+            </T>
+          </View>
+
           {(!c.tiers || c.tiers.length === 0) ? (
             <T style={{ color: colors.muted, textAlign: 'center', marginTop: 40 }}>
               Belum ada tiket tersedia
             </T>
           ) : (
-            c.tiers.map((t) => {
-              const rem = (t.quota ?? 0) - (t.sold ?? 0);
+            c.tiers.map(t => {
+              const rem = Math.max(0, (t.quota ?? 0) - (t.sold ?? 0));
+              const qty = quantities[String(t.id)] || 0;
               const soldOut = rem <= 0;
-              const sel = tier?.id === t.id;
+
               return (
-                <Pressable
+                <Card
                   key={t.id}
-                  disabled={soldOut}
-                  onPress={() => { setTier(t); setQty(1); }}
-                  style={{ opacity: soldOut ? 0.4 : 1, marginBottom: 12 }}
+                  style={{
+                    marginBottom: 12,
+                    borderColor: qty > 0 ? tierColors[t.name] ?? colors.primary : colors.border,
+                    borderWidth: qty > 0 ? 2 : 1
+                  }}
                 >
-                  <Card style={{ borderColor: sel ? tierColors[t.name] : colors.border, borderWidth: sel ? 2 : 1 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                      <T w="bold" style={{ fontSize: 18, color: tierColors[t.name] ?? colors.text }}>{t.name}</T>
-                      <T w="bold" style={{ fontSize: 16 }}>{formatRupiah(t.price)}</T>
-                    </View>
-                    {t.perks ? (
-                      <T style={{ color: colors.muted, marginVertical: 6, fontSize: 13 }}>{t.perks}</T>
-                    ) : null}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <T w="bold" style={{ fontSize: 18, color: tierColors[t.name] ?? colors.text }}>
+                      {t.name}
+                    </T>
+                    <T w="bold" style={{ fontSize: 16 }}>
+                      {formatRupiah(t.price)}
+                    </T>
+                  </View>
+
+                  {t.perks ? (
+                    <T style={{ color: colors.muted, marginVertical: 6, fontSize: 13 }}>
+                      {t.perks}
+                    </T>
+                  ) : null}
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
                     <T style={{ color: soldOut ? colors.danger : rem < 30 ? colors.warning : colors.muted, fontSize: 12 }}>
                       {soldOut ? 'Habis terjual' : rem < 30 ? `Tinggal ${rem} tiket!` : `Tersedia ${rem} tiket`}
                     </T>
-                  </Card>
-                </Pressable>
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                      <Stepper
+                        icon="remove"
+                        onPress={() => changeQty(t, -1)}
+                        disabled={qty <= 0}
+                      />
+
+                      <T w="bold" style={{ fontSize: 18, minWidth: 18, textAlign: 'center' }}>
+                        {qty}
+                      </T>
+
+                      <Stepper
+                        icon="add"
+                        onPress={() => changeQty(t, 1)}
+                        disabled={soldOut || qty >= rem || totalQty >= MAX}
+                      />
+                    </View>
+                  </View>
+                </Card>
               );
             })
           )}
 
-          {tier && (
-            <Card style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <View>
-                <T w="semibold">Jumlah Tiket</T>
-                <T style={{ color: colors.muted, fontSize: 12 }}>Maksimal {max} per transaksi</T>
+          {selectedItems.length > 0 && (
+            <Card style={{ marginTop: 4 }}>
+              <T w="semibold" style={{ marginBottom: 10 }}>Ringkasan Tiket</T>
+
+              {selectedItems.map(item => {
+                const tier = c.tiers?.find(t => Number(t.id) === item.ticket_tier_id);
+
+                return (
+                  <View key={item.ticket_tier_id} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <T style={{ color: colors.muted, fontSize: 13 }}>
+                      {tier?.name} × {item.quantity}
+                    </T>
+                    <T style={{ fontSize: 13 }}>
+                      {formatRupiah((tier?.price || 0) * item.quantity)}
+                    </T>
+                  </View>
+                );
+              })}
+
+              <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 10 }} />
+
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <T w="semibold">Total Tiket</T>
+                <T w="semibold">{totalQty} tiket</T>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-                <Stepper icon="remove" onPress={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1} />
-                <T w="bold" style={{ fontSize: 18 }}>{qty}</T>
-                <Stepper icon="add" onPress={() => setQty((q) => Math.min(max, q + 1))} disabled={qty >= max} />
+
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
+                <T w="bold">Subtotal</T>
+                <T w="bold" style={{ color: colors.primary, fontSize: 16 }}>
+                  {formatRupiah(total)}
+                </T>
               </View>
             </Card>
           )}
@@ -147,19 +238,32 @@ export default function TierSelection() {
 
       <SafeAreaView
         edges={['bottom']}
-        style={{ padding: 16, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.border }}
+        style={{
+          padding: 16,
+          backgroundColor: colors.card,
+          borderTopWidth: 1,
+          borderTopColor: colors.border
+        }}
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-          <T style={{ color: colors.muted }}>Subtotal</T>
-          <T w="bold" style={{ color: colors.primary, fontSize: 16 }}>{formatRupiah(total)}</T>
+          <T style={{ color: colors.muted }}>
+            {totalQty} tiket dipilih
+          </T>
+          <T w="bold" style={{ color: colors.primary, fontSize: 16 }}>
+            {formatRupiah(total)}
+          </T>
         </View>
+
         <Button
           title="Lanjut ke Pembayaran"
-          disabled={!tier}
+          disabled={selectedItems.length === 0}
           onPress={() =>
             r.push({
               pathname: '/checkout/[id]',
-              params: { id: String(c.id), tierId: String(tier!.id), qty: String(qty) },
+              params: {
+                id: String(c.id),
+                items: JSON.stringify(selectedItems)
+              }
             })
           }
         />
@@ -181,7 +285,7 @@ const Stepper = ({ icon, onPress, disabled }: { icon: any; onPress: () => void; 
       backgroundColor: colors.card2,
       alignItems: 'center',
       justifyContent: 'center',
-      opacity: disabled ? 0.4 : 1,
+      opacity: disabled ? 0.4 : 1
     }}
   >
     <Ionicons name={icon} size={18} color="#fff" />
