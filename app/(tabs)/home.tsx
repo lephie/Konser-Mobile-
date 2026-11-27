@@ -1,11 +1,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { View, ScrollView, ActivityIndicator } from 'react-native';
+import { View, ScrollView, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { T, Logo } from '../../components/ui';
 import ConcertCard from '../../components/ConcertCard';
 import { colors } from '../../constants/theme';
 import { useAuth } from '../../lib/auth';
+import { Ionicons } from '@expo/vector-icons';
 
 type Concert = {
   id: string | number;
@@ -32,6 +33,8 @@ export default function Home() {
   const [concerts, setConcerts] = useState<Concert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+
 
   const fetchConcerts = useCallback(async (signal: AbortSignal) => {
     try {
@@ -56,6 +59,12 @@ export default function Home() {
     }
   }, []);
 
+  const filtered = concerts.filter(c =>
+    c.title.toLowerCase().includes(search.toLowerCase()) ||
+    c.venue.toLowerCase().includes(search.toLowerCase())
+  );
+
+
   useEffect(() => {
     const ctrl = new AbortController();
     fetchConcerts(ctrl.signal);
@@ -75,6 +84,36 @@ export default function Home() {
           Temukan konser favoritmu
         </T>
 
+
+
+        <View style={{
+          flexDirection: 'row', alignItems: 'center', gap: 8,
+          backgroundColor: colors.card, borderRadius: 12, borderWidth: 1,
+          borderColor: colors.border, paddingHorizontal: 12, marginBottom: 12,
+        }}>
+          <Ionicons name="search" size={18} color={colors.muted} />
+          <TextInput
+            placeholder="Cari konser atau venue..."
+            placeholderTextColor={colors.muted}
+            value={search}
+            onChangeText={setSearch}
+            style={{ flex: 1, paddingVertical: 10, color: colors.text }}
+          />
+        </View>
+
+        <View style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginTop: 16,
+          marginBottom: 12,
+        }}>
+          <T w="bold" style={{ fontSize: 18 }}>
+            Konser untuk Kamu
+          </T>
+         
+        </View>
+
         {loading && <ActivityIndicator color={colors.text} style={{ marginTop: 20 }} />}
 
         {!loading && error && (
@@ -83,13 +122,13 @@ export default function Home() {
           </T>
         )}
 
-        {!loading && !error && concerts.length === 0 && (
+        {!loading && !error && filtered.length === 0 && (
           <T style={{ color: colors.muted, textAlign: 'center', marginTop: 20 }}>
             Belum ada konser
           </T>
         )}
 
-        {!loading && !error && concerts.map((c) => (
+        {!loading && !error && filtered.map((c) => (
           <ConcertCard key={c.id} c={c} />
         ))}
       </ScrollView>

@@ -67,9 +67,9 @@ export default function OrderDetail() {
 
             const outcome = await payOrder(order.id);
             if (outcome === 'paid') {
-               r.replace({pathname: 'checkout/success', params: {orderId: String(order.id)}})
+                r.replace({ pathname: 'checkout/success', params: { orderId: String(order.id) } })
             }
-            if(outcome === 'failed'){
+            if (outcome === 'failed') {
                 Alert.alert('Pembayaran gagal', 'Pesanan dibatalkan atau expired')
             }
 
@@ -80,6 +80,31 @@ export default function OrderDetail() {
         } finally {
             setPaying(false);
         }
+    };
+
+    const handleCancel = async (orderId: number) => {
+        Alert.alert(
+            'Batalkan Order?',
+            'Kuota tiket akan dilepas dan tidak bisa dikembalikan.',
+            [
+                { text: 'Tidak', style: 'cancel' },
+                {
+                    text: 'Ya, Batalkan',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const updated = await orderApi.cancel(orderId);
+                            // updated = order terbaru dari backend (status 'cancelled')
+                            Alert.alert('Berhasil', 'Order dibatalkan');
+                            // misal: refresh list atau navigasi
+                            // router.back();
+                        } catch (err: any) {
+                            Alert.alert('Gagal', err.message);
+                        }
+                    },
+                },
+            ]
+        );
     };
 
     if (loading) {
@@ -180,6 +205,16 @@ export default function OrderDetail() {
                         onPress={handlePay}
                         disabled={paying || order.seconds_left <= 0}
                     />
+                )}
+
+                {order.status === 'pending' && (
+                    <Pressable
+                        onPress={() => handleCancel(order.id)}
+                        style={{ marginTop: 14, paddingVertical: 11, borderRadius: 10, backgroundColor: '#131313', borderWidth: 1, borderColor: '#DC2626', alignItems: 'center', }}                    >
+                        <T style={{ color: '#DC2626', fontSize: 13, fontWeight: '600' }}>
+                            Batalkan Pesanan
+                        </T>
+                    </Pressable>
                 )}
 
                 {order.status === 'paid' && (

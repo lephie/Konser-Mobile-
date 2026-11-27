@@ -7,8 +7,14 @@ export const T = ({ w = 'regular', style, ...p }: TextProps & { w?: keyof typeof
 );
 
 export const Logo = ({ size = 24 }: { size?: number }) => (
-  <Text style={{ fontFamily: fonts.bold, fontSize: size, color: colors.text }}>
-    The <Text style={{ color: colors.primary }}>Concert's</Text>
+  <Text style={{
+    fontFamily: fonts.bold,
+    fontSize: size,
+    color: colors.text,
+    letterSpacing: -1,
+  }}>
+    THE <Text style={{ color: colors.primary }}>CONCERT'S</Text>
+    <Text style={{ color: colors.primary }}>.</Text>
   </Text>
 );
 

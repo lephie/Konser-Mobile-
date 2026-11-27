@@ -113,21 +113,29 @@ export default function ConcertDetail() {
           <T w="semibold" style={{ fontSize: 16, marginTop: 14, marginBottom: 6 }}>Tentang Konser</T>
           <T style={{ color: colors.muted, lineHeight: 22 }}>{c.description ?? '-'}</T>
 
-          <View style={{
-            borderWidth: 1,
-            borderColor: '#FBADCC',
-            padding: 14,
-            borderRadius: 8,
-            marginTop: 18,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <Info icon="calendar-outline" text={`${formatDate(c.date)} • ${formatTime(c.date)}`} />
-            <Info icon="location-outline" text={locationText || '-'} />
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
+            <View style={{
+              flex: 1, backgroundColor: colors.card, borderRadius: 12, padding: 12,
+              borderWidth: 1, borderColor: colors.border,
+            }}>
+              <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+              <T style={{ fontSize: 11, color: colors.muted, marginTop: 6 }}>Tanggal</T>
+              <T w="semibold" style={{ fontSize: 13 }}>{formatDate(c.date)}</T>
+              <T style={{ fontSize: 11, color: colors.muted }}>{formatTime(c.date)}</T>
+            </View>
+
+            <View style={{
+              flex: 1, backgroundColor: colors.card, borderRadius: 12, padding: 12,
+              borderWidth: 1, borderColor: colors.border,
+            }}>
+              <Ionicons name="location-outline" size={18} color={colors.primary} />
+              <T style={{ fontSize: 11, color: colors.muted, marginTop: 6 }}>Lokasi</T>
+              <T w="semibold" style={{ fontSize: 13 }} numberOfLines={1}>{c.venue}</T>
+              <T style={{ fontSize: 11, color: colors.muted }} numberOfLines={1}>{c.location ?? '-'}</T>
+            </View>
           </View>
 
-          {/* disini lah letak perubhaanya */}
-          <VenueInfo layoutUrl={c.layout_url} mapUrl={c.map_url} /> 
+          <VenueInfo layoutUrl={c.layout_url} mapUrl={c.map_url} />
 
           <T w="semibold" style={{ fontSize: 16, marginTop: 18, marginBottom: 8 }}>Kategori Tiket</T>
 
@@ -167,12 +175,19 @@ export default function ConcertDetail() {
 
       <SafeAreaView
         edges={['bottom']}
-        style={{ padding: 16, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.border }}
-      >
-        <Button
-          title="Pilih Tiket"
-          onPress={() => r.push({ pathname: '/concert/tiers/[id]', params: { id: String(c.id) } })}
-        />
+        style={{ padding: 16, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 12, }}     >
+        <View style={{ flex: 1 }}>
+          <T style={{ fontSize: 11, color: colors.muted }}>Mulai dari</T>
+          <T w="bold" style={{ fontSize: 16, color: colors.primary }}>
+            {formatRupiah(Math.min(...(c.tiers?.map(t => t.price) ?? [0])))}
+          </T>
+        </View>
+        <View style={{ flex: 1.4 }}>
+          <Button
+            title="Pilih Tiket"
+            onPress={() => r.push({ pathname: '/concert/tiers/[id]', params: { id: String(c.id) } })}
+          />
+        </View>
       </SafeAreaView>
     </View>
   );

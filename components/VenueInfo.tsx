@@ -38,8 +38,31 @@ export default function VenueInfo({ layoutUrl, mapUrl }: { layoutUrl?: string | 
         <>
           <T w="semibold" style={{ fontSize: 16, marginTop: 18, marginBottom: 8 }}>Lokasi</T>
           <View style={{ height: 240, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: colors.border }}>
-            <WebView source={{ uri: map }} startInLoadingState nestedScrollEnabled
-              renderLoading={() => <ActivityIndicator color={colors.text} style={{ position: 'absolute', top: '45%', alignSelf: 'center' }} />} />
+            <WebView
+              source={{
+                html: `
+      <html>
+        <body style="margin:0">
+          <iframe
+            src="${map}"
+            width="100%"
+            height="100%"
+            style="border:0;"
+            allowfullscreen
+            loading="lazy"
+          ></iframe>
+        </body>
+      </html>
+    `
+              }}
+              style={{ flex: 1 }}
+              originWhitelist={['*']}
+              startInLoadingState
+              nestedScrollEnabled
+              renderLoading={() => (
+                <ActivityIndicator color={colors.text} style={{ position: 'absolute', top: '45%', alignSelf: 'center' }} />
+              )}
+            />
           </View>
         </>
       ) : null}

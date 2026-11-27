@@ -25,26 +25,78 @@ export default function ConcertCard({ c }: { c: Concert }) {
   const r = useRouter();
   const min = c.starting_price ?? 0;
   return (
-    <Pressable onPress={() => r.push(`/concert/${c.id}`)}
-      style={{ backgroundColor: colors.card, borderRadius: 18, borderWidth: 1, borderColor: colors.border, overflow: 'hidden', marginBottom: 16 }}>
+    <Pressable
+      onPress={() => r.push(`/concert/${c.id}`)}
+      style={{
+        backgroundColor: colors.card,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: colors.border,
+        overflow: 'hidden',
+        marginBottom: 16,
+      }}
+    >
       <Image
-        source={
-          c.banner_url
-            ? { uri: c.banner_url }
-            : undefined
-        }
-        style={{ height: 160, width: '100%', backgroundColor: colors.border }}
+        source={c.banner_url ? { uri: c.banner_url } : undefined}
+        style={{
+          height: 175,
+          width: '100%',
+          backgroundColor: colors.border,
+        }}
       />
+
       <View style={{ padding: 14 }}>
-        {/* <Badge label={c.genre} color={colors.primary} /> */}
-        <T w="semibold" style={{ fontSize: 17, marginTop: 8 }}>{c.title}</T>
-        <T style={{ color: colors.muted }}>{c.artist}</T>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 6 }}>
-          <Ionicons name="calendar-outline" size={14} color={colors.muted} />
-          <T style={{ color: colors.muted, fontSize: 12 }}>{formatDate(c.date)}  •  {c.venue}</T>
+        <T w="bold" style={{ fontSize: 17 }}>
+          {c.title}
+        </T>
+
+        {!!c.artist && (
+          <T style={{ color: colors.muted, fontSize: 13, marginTop: 4 }}>
+            {c.artist}
+          </T>
+        )}
+
+        <View style={{ gap: 9, marginTop: 13 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="calendar-outline" size={14} color="#FBADCC" />
+            <T style={{ color: colors.muted, fontSize: 12 }}>
+              {formatDate(c.date)}
+            </T>
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="location-outline" size={14} color="#FBADCC" />
+            <T style={{ color: colors.muted, fontSize: 12 }}>
+              {c.venue}
+            </T>
+          </View>
         </View>
-        <T style={{ marginTop: 10, color: colors.muted, fontSize: 12 }}>Mulai dari</T>
-        <T w="bold" style={{ color: colors.primary, fontSize: 16 }}>{formatRupiah(min)}</T>
+
+        <View
+          style={{
+            height: 1,
+            backgroundColor: colors.border,
+            marginVertical: 13,
+          }}
+        />
+
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View>
+            <T style={{ color: colors.muted, fontSize: 11 }}>
+              Mulai dari
+            </T>
+            <T w="bold" style={{ color: colors.primary, fontSize: 17, marginTop: 3 }}>
+              {formatRupiah(min)}
+            </T>
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <T style={{ color: colors.primary, fontSize: 12 }} w="semibold">
+              Lihat Detail
+            </T>
+            <Ionicons name="arrow-forward" size={14} color={colors.primary} />
+          </View>
+        </View>
       </View>
     </Pressable>
   );

@@ -33,7 +33,7 @@ export const statusConfig = {
   paid: { label: 'Berhasil', color: '#22C55E' },
   pending: { label: 'Menunggu Pembayaran', color: '#EAB308' },
   expired: { label: 'Kedaluwarsa', color: '#EF4444' },
-  cancelled: { label: 'Dibatalkan', color: '#8d0000' },
+  cancelled: { label: 'Dibatalkan', color: '#Dc2626' },
 } as const;
 
 const TIER_PALETTE = ['#A855F7', '#F59E0B', '#22C55E', '#3B82F6', '#EC4899', '#14B8A6', '#F97316', '#EAB308'];

@@ -74,7 +74,7 @@ export default function EditProfile() {
         ) : (
           <Card>
             <Input label="Password Lama" secureTextEntry value={pw.old} onChangeText={(v) => setPw({ ...pw, old: v })} />
-            <Input label="Password Baru" placeholder="Min 6 karakter" secureTextEntry value={pw.n} onChangeText={(v) => setPw({ ...pw, n: v })} />
+            <Input label="Password Baru" placeholder="Min 8 karakter" secureTextEntry value={pw.n} onChangeText={(v) => setPw({ ...pw, n: v })} />
             <Input label="Ulangi Password Baru" secureTextEntry value={pw.n2} onChangeText={(v) => setPw({ ...pw, n2: v })} />
             <Button title={saving ? 'Menyimpan...' : 'Ubah Password'} onPress={savePassword} disabled={saving} />
           </Card>
