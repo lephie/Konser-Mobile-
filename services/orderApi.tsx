@@ -63,6 +63,9 @@ export const orderApi = {
     getMyTickets: () =>
         request('/tickets'),
 
+    getTicketsByConcert: (concertId: number) =>
+        request(`/tickets?concert_id=${concertId}&limit=100`),
+
     getMyTicketsStatus: (status = 'unused') =>
         request(`/tickets?status=${status}`)
 

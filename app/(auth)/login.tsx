@@ -90,14 +90,14 @@ try {
           
               {err.general ? (
                 <View style={{ backgroundColor: '#EF444420', borderRadius: 10, padding: 10, marginBottom: 12 }}>
-                  <T style={{ color: colors.danger, fontSize: 13 }}>{error}</T>
+                  
                   {wrongRole && (
                     <Link href="/(auth)/register" style={{ color: colors.primary, marginTop: 6, fontFamily: 'Poppins_600SemiBold' }}>
                       Daftar akun pengguna baru →
                     </Link>
                   )}
                 </View>
-              ) : null}
+              ) : null }
 
               <Button 
               title="Masuk" 

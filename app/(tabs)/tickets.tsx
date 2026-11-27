@@ -1,24 +1,22 @@
-
 import { orderApi } from '../../services/orderApi';
 import { useCallback, useState } from 'react';
 import { ScrollView, View, ActivityIndicator, Pressable } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { T } from '../../components/ui';
 import { colors, getTierColor } from '../../constants/theme';
 import QrTicket from '../../components/QrTicket';
 
-
 type Ticket = {
-    id: number,
-    qr_code: string,
-    status: 'unused' | 'used' | 'cancelled';
-    concert?: {id: number, title: string};
-    tier?: {id: number, name: string};
-    tierId: {};
-  };
+  id: number;
+  qr_code: string;
+  status: 'unused' | 'used' | 'cancelled';
+  concert?: { id: number; title: string };
+  tier?: { id: number; name: string };
+  detail?: { id: number; order_id: number };
+};
 
-  const getList = (result: any): Ticket[] => {
+const getList = (result: any): Ticket[] => {
   if (Array.isArray(result)) return result;
   if (Array.isArray(result?.rows)) return result.rows;
   if (Array.isArray(result?.items)) return result.items;
@@ -27,7 +25,7 @@ type Ticket = {
 };
 
 export default function Tickets() {
-
+  const r = useRouter();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -37,21 +35,23 @@ export default function Tickets() {
       setLoading(true);
       setError('');
       setTickets(getList(await orderApi.getMyTicketsStatus()));
-    } catch (err : any) {
-      setError(err?.message ?? 'Gagal mengambil tiket')
-    }finally{
+    } catch (err: any) {
+      setError(err?.message ?? 'Gagal mengambil tiket');
+    } finally {
       setLoading(false);
     }
-  }, [])
+  }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      load()
-    }, [load])
-  );
+  useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const openOrder = (t: Ticket) => {
+    const orderId = t.detail?.order_id;
+    if (!orderId) return;
+    r.push({ pathname: '/order/[id]', params: { id: String(orderId), ticketId: String(t.id) } });
+  };
 
   return (
-     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.bg }}>
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.bg }}>
       <T w="bold" style={{ fontSize: 22, padding: 16, paddingBottom: 8 }}>Tiket Saya</T>
 
       {loading ? (
@@ -68,9 +68,7 @@ export default function Tickets() {
       ) : (
         <ScrollView contentContainerStyle={{ padding: 16 }}>
           {tickets.length === 0 && (
-            <T style={{ color: colors.muted, textAlign: 'center', marginTop: 40 }}>
-              Belum ada tiket aktif
-            </T>
+            <T style={{ color: colors.muted, textAlign: 'center', marginTop: 40 }}>Belum ada tiket aktif</T>
           )}
 
           {tickets.map((t, i) => (
@@ -81,6 +79,8 @@ export default function Tickets() {
               concert={t.concert?.title ?? '-'}
               index={i + 1}
               tierId={getTierColor(t.tier?.name, t.tier?.id)}
+              status={t.status}
+              onPress={t.detail?.order_id ? () => openOrder(t) : undefined}
             />
           ))}
         </ScrollView>
